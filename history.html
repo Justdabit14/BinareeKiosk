@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ffcc00">
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("Service Worker Registered"))
-      .catch(err => console.log("SW error:", err));
-  }
-</script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ffcc00">
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("Service Worker Registered"))
+        .catch(err => console.log("SW error:", err));
+    }
+  </script>
 
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Order List</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body { font-family: Arial, sans-serif; margin: 15px; }
     h2 { text-align: center; }
@@ -27,7 +27,6 @@
 <body>
   <h2>📋 Order List</h2>
 
-  <!-- Daily Sales -->
   <div><b>Daily Total:</b> RM <span id="daily-total">0</span></div>
   <div><b>Orders Today:</b> <span id="order-count">0</span></div>
   <div class="divider"></div>
@@ -40,7 +39,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
     import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
 
-    // 🔹 Your Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBegMe89Rh5D7PdZm87qeQam9xm_ofpBLY",
       authDomain: "binareekiosk.firebaseapp.com",
@@ -59,27 +57,30 @@
     let orderCount = 0;
 
     function renderHistory(orders) {
-      let historyDiv = document.getElementById('history');
+      const historyDiv = document.getElementById('history');
       historyDiv.innerHTML = '';
       dailyTotal = 0;
       orderCount = 0;
 
       if (!orders) {
         historyDiv.innerHTML = "<p>No orders yet.</p>";
-        document.getElementById('daily-total').innerText = "0";
+        document.getElementById('daily-total').innerText = "0.00";
         document.getElementById('order-count').innerText = "0";
         return;
       }
 
       Object.entries(orders).forEach(([key, order]) => {
-        dailyTotal += order.total;
+        const totalNum = Number(order.total) || 0;
+        dailyTotal += totalNum;
         orderCount++;
 
-        if (!order.status) order.status = "Preparing order";
+        const items = Array.isArray(order.items) ? order.items : [];
+        const status = order.status || "Preparing order";
+        const time = order.time || "";
 
-        let itemsHTML = order.items.map((item, idx) => `
+        const itemsHTML = items.map((item, idx) => `
           <div>
-            - ${item.name} (RM${item.price.toFixed(2)})
+            - ${item.name} (RM${Number(item.price).toFixed(2)})
             <button onclick="editItemNote('${key}', ${idx})">📝 Edit Note</button>
             <span class="item-note">${item.note ? "Note: " + item.note : ""}</span>
           </div>
@@ -87,11 +88,11 @@
 
         historyDiv.innerHTML += `
           <div class="history-item" id="order-${key}">
-            <b>${order.time}</b><br>
+            <b>${time}</b><br>
             ${itemsHTML}
             <br>
-            <b>Total:</b> RM<span id="total-${key}">${order.total.toFixed(2)}</span><br>
-            <b>Status:</b> <span id="status-${key}" class="status">${order.status}</span><br>
+            <b>Total:</b> RM<span id="total-${key}">${totalNum.toFixed(2)}</span><br>
+            <b>Status:</b> <span id="status-${key}" class="status">${status}</span><br>
             <button onclick="setStatus('${key}', 'Preparing order')">⏳ Preparing</button>
             <button onclick="setStatus('${key}', 'Completed✅')">✅ Completed</button>
             <button onclick="setStatus('${key}', 'Paid')">💵 Paid</button>
@@ -102,34 +103,50 @@
       });
 
       document.getElementById('daily-total').innerText = dailyTotal.toFixed(2);
-      document.getElementById('order-count').innerText = orderCount;
+      document.getElementById('order-count').innerText = String(orderCount);
     }
 
-    function setStatus(orderId, newStatus) {
-      const orderRef = ref(db, "orders/" + orderId);
-      update(orderRef, { status: newStatus });
+    async function setStatus(orderId, newStatus) {
+      try {
+        await update(ref(db, "orders/" + orderId), { status: newStatus });
+      } catch (e) {
+        console.error(e);
+        alert("⚠️ Failed to update status: " + (e?.message || e));
+      }
     }
 
-    function editOrder(orderId) {
+    async function editOrder(orderId) {
       let newTotal = prompt("Enter new total price (RM):");
-      if (newTotal && !isNaN(newTotal)) {
-        update(ref(db, "orders/" + orderId), { total: parseFloat(newTotal) });
+      if (newTotal === null) return;
+      newTotal = Number(newTotal);
+      if (Number.isNaN(newTotal)) { alert("Please enter a number"); return; }
+      try {
+        await update(ref(db, "orders/" + orderId), { total: newTotal });
+      } catch (e) {
+        console.error(e);
+        alert("⚠️ Failed to update total: " + (e?.message || e));
       }
     }
 
-    function editItemNote(orderId, itemIndex) {
-      let newNote = prompt("Enter new note:");
-      if (newNote !== null) {
-        const orderRef = ref(db, "orders/" + orderId + "/items/" + itemIndex);
-        update(orderRef, { note: newNote });
+    async function editItemNote(orderId, itemIndex) {
+      const newNote = prompt("Enter new note:");
+      if (newNote === null) return;
+      try {
+        await update(ref(db, `orders/${orderId}/items/${itemIndex}`), { note: newNote });
+      } catch (e) {
+        console.error(e);
+        alert("⚠️ Failed to update note: " + (e?.message || e));
       }
     }
 
-    // 🔹 Listen for realtime updates
-    const ordersRef = ref(db, "orders");
-    onValue(ordersRef, (snapshot) => {
-      const data = snapshot.val();
-      renderHistory(data);
+    // 🔓 Expose for inline onclick (module scope fix)
+    window.setStatus = setStatus;
+    window.editOrder = editOrder;
+    window.editItemNote = editItemNote;
+
+    // Realtime listener
+    onValue(ref(db, "orders"), (snapshot) => {
+      renderHistory(snapshot.val());
     });
   </script>
 </body>
