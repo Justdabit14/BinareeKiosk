@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ffcc00">
+<link rel="manifest" href="manifest.json">
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("Service Worker Registered"));
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log("SW error:", err));
+  }
+</script>
   }
 </script>
   <meta charset="UTF-8">
@@ -137,4 +139,5 @@
     updateDailySales();
   </script>
 </body>
+
 </html>
