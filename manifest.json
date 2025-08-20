@@ -1,6 +1,6 @@
 {
-  "name": "Burger Stall POS",
-  "short_name": "POS",
+  "name": "Binaree Kiosk",
+  "short_name": "BinareeKiosk",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -17,4 +17,5 @@
       "type": "image/png"
     }
   ]
+
 }
