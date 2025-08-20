@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script>
   <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ffcc00">
 <script>
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js")
-      .then(() => console.log("Service Worker Registered"));
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log("SW error:", err));
+  }
+</script>
   }
 </script>
   <meta charset="UTF-8">
@@ -182,4 +185,5 @@
     renderMenu();
   </script>
 </body>
+
 </html>
