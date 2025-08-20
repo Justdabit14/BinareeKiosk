@@ -1,7 +1,7 @@
 const CACHE_NAME = "pos-cache-v1";
 const FILES_TO_CACHE = [
   "index.html",
-  "order-list.html",
+  "history.html",
   "manifest.json",
   "icon-192.png",
   "icon-512.png"
@@ -40,4 +40,5 @@ self.addEventListener("fetch", (event) => {
       return response || fetch(event.request);
     })
   );
+
 });
