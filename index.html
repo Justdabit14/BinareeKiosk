@@ -44,11 +44,26 @@
   <!-- Navigation -->
   <button onclick="window.location.href='history.html'">📜 View Order History</button>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+
+    // 🔹 Your Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyBegMe89Rh5D7PdZm87qeQam9xm_ofpBLY",
+      authDomain: "binareekiosk.firebaseapp.com",
+      databaseURL: "https://binareekiosk-default-rtdb.firebaseio.com",
+      projectId: "binareekiosk",
+      storageBucket: "binareekiosk.appspot.com",
+      messagingSenderId: "186543278188",
+      appId: "1:186543278188:web:7a7e553e04481439c83049",
+      measurementId: "G-8QDL5YLLHC"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     let currentOrder = [];
-    let dailyTotal = parseFloat(localStorage.getItem("dailyTotal")) || 0;
-    let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
-    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
 
     const menuData = {
       "BURGER - Daging": {
@@ -111,8 +126,6 @@
       "FRIES": {
         "CHEESY FRIES": 5.00, "CHEESY LOADED FRIES": 9.00
       }
-    
-      
     };
 
     function renderMenu() {
@@ -164,16 +177,13 @@
         id: Date.now(),
         items: currentOrder,
         total: total,
+        status: "Preparing order",
         time: new Date().toLocaleString()
       };
 
-      salesHistory.push(order);
-      localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
-
-      dailyTotal += total;
-      orderCount++;
-      localStorage.setItem("dailyTotal", dailyTotal);
-      localStorage.setItem("orderCount", orderCount);
+      // 🔹 Save to Firebase
+      const ordersRef = ref(db, "orders");
+      push(ordersRef, order);
 
       alert("Order Sent!\nTotal: RM" + total.toFixed(2));
       
@@ -184,10 +194,4 @@
     renderMenu();
   </script>
 </body>
-
 </html>
-
-
-
-
-
