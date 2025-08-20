@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffcc00">
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker Registered"));
+  }
+</script>
+  <meta charset="UTF-8">
+  <title>Order List</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; }
+    h2 { text-align: center; }
+    .history-item { border: 1px dashed #999; padding: 10px; margin: 5px 0; }
+    .item-note { font-size: 13px; color: #444; margin-left: 10px; display: block; }
+    .status { font-style: italic; color: #0066cc; }
+    button { padding: 6px 10px; margin: 3px; font-size: 13px; }
+    .divider { border-top: 2px solid #333; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h2>📋 Order List</h2>
+
+  <!-- Daily Sales -->
+  <div><b>Daily Total:</b> RM <span id="daily-total">0</span></div>
+  <div><b>Orders Today:</b> <span id="order-count">0</span></div>
+  <button onclick="clearDailySales()">🧹 Clear Daily Sales</button>
+  <div class="divider"></div>
+
+  <div id="history"></div>
+
+  <button onclick="window.location.href='index.html'">⬅️ Back to Order</button>
+  <button style="background:red; color:white;" onclick="clearHistory()">🗑️ Clear All Orders</button>
+
+  <script>
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    let dailyTotal = parseFloat(localStorage.getItem("dailyTotal")) || 0;
+    let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
+
+    function renderHistory() {
+      let historyDiv = document.getElementById('history');
+      historyDiv.innerHTML = '';
+      if (salesHistory.length === 0) {
+        historyDiv.innerHTML = "<p>No orders yet.</p>";
+        return;
+      }
+
+      salesHistory.forEach(order => {
+        // Default status if missing
+        if (!order.status) order.status = "Preparing order";
+
+        let itemsHTML = order.items.map((item, idx) => `
+          <div>
+            - ${item.name} (RM${item.price.toFixed(2)})
+            <button onclick="editItemNote(${order.id}, ${idx})">📝 Edit Note</button>
+            <span class="item-note">${item.note ? "Note: " + item.note : ""}</span>
+          </div>
+        `).join("");
+
+        historyDiv.innerHTML += `
+          <div class="history-item" id="order-${order.id}">
+            <b>${order.time}</b><br>
+            ${itemsHTML}
+            <br>
+            <b>Total:</b> RM<span id="total-${order.id}">${order.total.toFixed(2)}</span><br>
+            <b>Status:</b> <span id="status-${order.id}" class="status">${order.status}</span><br>
+            <button onclick="setStatus(${order.id}, 'Preparing order')">⏳ Preparing</button>
+            <button onclick="setStatus(${order.id}, 'Completed✅')">✅ Completed</button>
+            <button onclick="setStatus(${order.id}, 'Paid')">💵 Paid</button>
+            <br>
+            <button onclick="editOrder(${order.id})">✏️ Edit Total</button>
+          </div>
+        `;
+      });
+    }
+
+    function setStatus(orderId, newStatus) {
+      let order = salesHistory.find(o => o.id === orderId);
+      if (order) {
+        order.status = newStatus;
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        renderHistory();
+      }
+    }
+
+    function editOrder(orderId) {
+      let newTotal = prompt("Enter new total price (RM):");
+      if (newTotal && !isNaN(newTotal)) {
+        newTotal = parseFloat(newTotal);
+        let order = salesHistory.find(o => o.id === orderId);
+        if (order) {
+          order.total = newTotal;
+          localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+          renderHistory();
+        }
+      }
+    }
+
+    function editItemNote(orderId, itemIndex) {
+      let newNote = prompt("Enter new note:");
+      let order = salesHistory.find(o => o.id === orderId);
+      if (order && order.items[itemIndex]) {
+        order.items[itemIndex].note = newNote;
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        renderHistory();
+      }
+    }
+
+    function clearHistory() {
+      if (confirm("⚠️ Are you sure you want to delete ALL orders? This cannot be undone.")) {
+        salesHistory = [];
+        localStorage.removeItem('salesHistory');
+        renderHistory();
+      }
+    }
+
+    function clearDailySales() {
+      if (confirm("Clear today's sales total? This will NOT delete order list.")) {
+        dailyTotal = 0;
+        orderCount = 0;
+        localStorage.setItem("dailyTotal", dailyTotal);
+        localStorage.setItem("orderCount", orderCount);
+        updateDailySales();
+      }
+    }
+
+    function updateDailySales() {
+      document.getElementById('daily-total').innerText = dailyTotal.toFixed(2);
+      document.getElementById('order-count').innerText = orderCount;
+    }
+
+    renderHistory();
+    updateDailySales();
+  </script>
+</body>
+</html>

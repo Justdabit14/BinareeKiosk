@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffcc00">
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker Registered"));
+  }
+</script>
+  <meta charset="UTF-8">
+  <title>Burger Stall POS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 15px; }
+    h2, h3 { text-align: center; }
+    button { padding: 6px 10px; margin: 3px; font-size: 14px; }
+    .order-item { border: 1px solid #ccc; padding: 10px; margin: 5px 0; }
+    .note { font-size: 13px; color: #444; margin-left: 10px; display: block; }
+    .total { font-weight: bold; font-size: 18px; margin-top: 10px; }
+    .divider { border-top: 2px solid #333; margin: 10px 0; }
+    .category { background: #f2f2f2; padding: 5px; margin-top: 10px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>🍔 Binaree Kiosk 🍔</h2>
+
+  <!-- Menu -->
+  <h3>Menu</h3>
+  <div id="menu"></div>
+
+  <!-- Order List -->
+  <h3>Current Order</h3>
+  <div id="order-list"></div>
+  <div class="total">Total: RM <span id="order-total">0</span></div>
+  
+  <button onclick="finishOrder()">✅ Send To Order</button>
+
+  <div class="divider"></div>
+
+  <!-- Navigation -->
+  <button onclick="window.location.href='history.html'">📜 View Order History</button>
+
+  <script>
+    let currentOrder = [];
+    let dailyTotal = parseFloat(localStorage.getItem("dailyTotal")) || 0;
+    let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+
+    const menuData = {
+      "BURGER - Daging": {
+        "D.BIASA": 4.00, "D.BIASA CHEESE": 5.50, "D.SPECIAL": 5.00, "D.SPECIAL CHEESE": 6.50,
+        "D.DOUBLE": 6.50, "D.DOUBLE CHEESE": 8.00, "D.DOUBLE SPECIAL": 7.00, "D.DOUBLE SPECIAL CHEESE": 8.50
+      },
+      "BURGER - Ayam": {
+        "A.BIASA": 4.00, "A.BIASA CHEESE": 5.50, "A.SPECIAL": 5.00, "A.SPECIAL CHEESE": 6.50,
+        "A.DOUBLE": 6.50, "A.DOUBLE CHEESE": 8.00, "A.DOUBLE SPECIAL": 7.00, "A.DOUBLE SPECIAL CHEESE": 8.50
+      },
+      "BURGER - Benjo": {
+        "B.BIASA": 3.00, "B.BIASA CHEESE": 4.50, "B.SPECIAL": 4.00, "B.SPECIAL CHEESE": 5.50,
+        "B.DOUBLE": 4.00, "B.DOUBLE CHEESE": 5.50, "B.DOUBLE SPECIAL": 5.00, "B.DOUBLE SPECIAL CHEESE": 6.50,
+        "SLOPPY BENJO SPECIAL": 7.00
+      },
+      "BURGER - Kambing": {
+        "K.BIASA": 4.00, "K.BIASA CHEESE": 5.50, "K.SPECIAL": 5.00, "K.SPECIAL CHEESE": 6.50,
+        "K.DOUBLE": 6.50, "K.DOUBLE CHEESE": 8.00, "K.DOUBLE SPECIAL": 7.00, "K.DOUBLE SPECIAL CHEESE": 8.50
+      },
+      "BURGER - Ikan": {
+        "I.BIASA": 5.00, "I.BIASA CHEESE": 6.50, "I.SPECIAL": 6.00, "I.SPECIAL CHEESE": 7.50,
+        "I.DOUBLE": 7.50, "I.DOUBLE CHEESE": 9.00, "I.DOUBLE SPECIAL": 8.00, "I.DOUBLE SPECIAL CHEESE": 9.50
+      },
+      "OBLONG - Daging": {
+        "O.D.BIASA": 7.00, "O.D.BIASA CHEESE": 8.50, "O.D.SPECIAL": 8.00, "O.D.SPECIAL CHEESE": 9.50,
+        "O.D.DOUBLE": 11.00, "O.D.DOUBLE CHEESE": 12.50, "O.D.DOUBLE SPECIAL": 11.50, "O.D.DOUBLE SPECIAL CHEESE": 13.00
+      },
+      "OBLONG - Ayam": {
+        "O.A.BIASA": 7.00, "O.A.BIASA CHEESE": 8.50, "O.A.SPECIAL": 8.00, "O.A.SPECIAL CHEESE": 9.50,
+        "O.A.DOUBLE": 11.00, "O.A.DOUBLE CHEESE": 12.50, "O.A.DOUBLE SPECIAL": 11.50, "O.A.DOUBLE SPECIAL CHEESE": 13.00
+      },
+      "OBLONG - Kambing": {
+        "O.K.BIASA": 8.00, "O.K.BIASA CHEESE": 9.50, "O.K.SPECIAL": 9.00, "O.K.SPECIAL CHEESE": 10.50,
+        "O.K.DOUBLE": 12.00, "O.K.DOUBLE CHEESE": 13.50, "O.K.DOUBLE SPECIAL": 13.00, "O.K.DOUBLE SPECIAL CHEESE": 14.00
+      },
+      "SLOPPY JOE": {
+        "SJ.BIASA": 5.00, "SJ.SPECIAL": 6.00, "SJ.CHEESE": 6.50, "SJ.SPECIAL CHEESE": 7.50
+      },
+      "SMASH BURGER": {
+        "S.B.SINGLE PATTY": 7.00, "S.B.DOUBLE PATTY": 9.00
+      },
+      "OTHER BURGERS": {
+        "CRISPY CHICKEN BURGER": 8.00
+      },
+      "WRAP - Daging": {
+        "W.D.BIASA": 6.00, "W.D.BIASA CHEESE": 7.50, "W.D.SPECIAL": 7.00, "W.D.SPECIAL CHEESE": 8.50
+      },
+      "WRAP - Ayam": {
+        "W.A.BIASA": 6.00, "W.A.BIASA CHEESE": 7.50, "W.A.SPECIAL": 7.00, "W.A.SPECIAL CHEESE": 8.50
+      },
+      "WRAP - Ikan": {
+        "W.I.BIASA": 7.00, "W.I.BIASA CHEESE": 8.50, "W.I.SPECIAL": 8.00, "W.I.SPECIAL CHEESE": 9.50
+      },
+      "WRAP - Kambing": {
+        "W.K.BIASA": 8.00, "W.K.BIASA CHEESE": 9.50, "W.K.SPECIAL": 9.00, "W.K.SPECIAL CHEESE": 10.50
+      },
+      "WRAP - Sloppy Joe": {
+        "W.SJ.BIASA": 7.00, "W.SJ.SPECIAL": 8.00, "W.SJ.CHEESE": 8.50, "W.SJ.SPECIAL CHEESE": 9.50
+      },
+      "FRIES": {
+        "CHEESY FRIES": 5.00, "CHEESY LOADED FRIES": 9.00
+      }
+    
+      
+    };
+
+    function renderMenu() {
+      let menuDiv = document.getElementById('menu');
+      for (let category in menuData) {
+        menuDiv.innerHTML += `<div class="category">${category}</div>`;
+        for (let item in menuData[category]) {
+          let price = menuData[category][item];
+          menuDiv.innerHTML += `<button onclick="addItem('${item}', ${price})">${item} - RM${price.toFixed(2)}</button>`;
+        }
+      }
+    }
+
+    function addItem(name, price) {
+      currentOrder.push({name, price, note: ""});
+      renderOrder();
+    }
+
+    function editItemNote(index) {
+      let newNote = prompt("Enter note for " + currentOrder[index].name + ":");
+      if (newNote !== null) {
+        currentOrder[index].note = newNote;
+        renderOrder();
+      }
+    }
+
+    function renderOrder() {
+      let orderList = document.getElementById('order-list');
+      orderList.innerHTML = '';
+      let total = 0;
+      currentOrder.forEach((item, index) => {
+        total += item.price;
+        orderList.innerHTML += `
+          <div class="order-item">
+            ${item.name} - RM${item.price.toFixed(2)}
+            <button onclick="editItemNote(${index})">📝 Add Note</button>
+            <span class="note">${item.note ? "Note: " + item.note : ""}</span>
+          </div>
+        `;
+      });
+      document.getElementById('order-total').innerText = total.toFixed(2);
+    }
+
+    function finishOrder() {
+      let total = currentOrder.reduce((sum, item) => sum + item.price, 0);
+      if (total === 0) { alert("No items in order!"); return; }
+
+      let order = {
+        id: Date.now(),
+        items: currentOrder,
+        total: total,
+        time: new Date().toLocaleString()
+      };
+
+      salesHistory.push(order);
+      localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+
+      dailyTotal += total;
+      orderCount++;
+      localStorage.setItem("dailyTotal", dailyTotal);
+      localStorage.setItem("orderCount", orderCount);
+
+      alert("Order Sent!\nTotal: RM" + total.toFixed(2));
+      
+      currentOrder = [];
+      renderOrder();
+    }
+
+    renderMenu();
+  </script>
+</body>
+</html>
