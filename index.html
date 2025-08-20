@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="manifest" href="manifest.json">
 <script>
-  <link rel="manifest" href="manifest.json">
-
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("service-worker.js")
       .then(() => console.log("Service Worker Registered"))
@@ -186,6 +185,7 @@
 </body>
 
 </html>
+
 
 
 
