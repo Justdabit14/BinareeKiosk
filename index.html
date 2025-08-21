@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffcc00">
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js")
-        .then(() => console.log("Service Worker Registered"))
-        .catch(err => console.log("SW error:", err));
-    }
-  </script>
+ <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffcc00">
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log("SW error:", err));
+  }
+</script>
 
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Binaree Kiosk</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; margin: 15px; }
     h2, h3 { text-align: center; }
@@ -28,39 +28,27 @@
 <body>
   <h2>🍔 Binaree Kiosk 🍔</h2>
 
+  <!-- Menu -->
   <h3>Menu</h3>
   <div id="menu"></div>
 
+  <!-- Order List -->
   <h3>Current Order</h3>
   <div id="order-list"></div>
   <div class="total">Total: RM <span id="order-total">0</span></div>
-
+  
   <button onclick="finishOrder()">✅ Send To Order</button>
 
   <div class="divider"></div>
 
+  <!-- Navigation -->
   <button onclick="window.location.href='history.html'">📜 View Order History</button>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-    import { getDatabase, ref, push } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
-
-    // 🔑 Your Firebase config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBegMe89Rh5D7PdZm87qeQam9xm_ofpBLY",
-      authDomain: "binareekiosk.firebaseapp.com",
-      databaseURL: "https://binareekiosk-default-rtdb.firebaseio.com",
-      projectId: "binareekiosk",
-      storageBucket: "binareekiosk.appspot.com",
-      messagingSenderId: "186543278188",
-      appId: "1:186543278188:web:7a7e553e04481439c83049",
-      measurementId: "G-8QDL5YLLHC"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
+  <script>
     let currentOrder = [];
+    let dailyTotal = parseFloat(localStorage.getItem("dailyTotal")) || 0;
+    let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
 
     const menuData = {
       "BURGER - Daging": {
@@ -77,8 +65,8 @@
         "SLOPPY BENJO SPECIAL": 7.00
       },
       "BURGER - Kambing": {
-        "K.BIASA": 4.00, "K.BIASA CHEESE": 5.50, "K.SPECIAL": 5.00, "K.SPECIAL CHEESE": 6.50,
-        "K.DOUBLE": 6.50, "K.DOUBLE CHEESE": 8.00, "K.DOUBLE SPECIAL": 7.00, "K.DOUBLE SPECIAL CHEESE": 8.50
+        "K.BIASA": 6.00, "K.BIASA CHEESE": 7.50, "K.SPECIAL": 7.00, "K.SPECIAL CHEESE": 8.50,
+        "K.DOUBLE": 9.50, "K.DOUBLE CHEESE": 11.00, "K.DOUBLE SPECIAL": 9.50, "K.DOUBLE SPECIAL CHEESE": 12.00
       },
       "BURGER - Ikan": {
         "I.BIASA": 5.00, "I.BIASA CHEESE": 6.50, "I.SPECIAL": 6.00, "I.SPECIAL CHEESE": 7.50,
@@ -107,24 +95,27 @@
       "FRIES": { "CHEESY FRIES": 5.00, "CHEESY LOADED FRIES": 9.00 }
     };
 
+      // ✂️ (you can paste the rest of your menu here — shortened for space)
+    };
+
     function renderMenu() {
-      const menuDiv = document.getElementById('menu');
-      for (const category in menuData) {
+      let menuDiv = document.getElementById('menu');
+      for (let category in menuData) {
         menuDiv.innerHTML += `<div class="category">${category}</div>`;
-        for (const item in menuData[category]) {
-          const price = menuData[category][item];
+        for (let item in menuData[category]) {
+          let price = menuData[category][item];
           menuDiv.innerHTML += `<button onclick="addItem('${item}', ${price})">${item} - RM${price.toFixed(2)}</button>`;
         }
       }
     }
 
     function addItem(name, price) {
-      currentOrder.push({ name, price, note: "" });
+      currentOrder.push({name, price, note: ""});
       renderOrder();
     }
 
     function editItemNote(index) {
-      const newNote = prompt("Enter note for " + currentOrder[index].name + ":");
+      let newNote = prompt("Enter note for " + currentOrder[index].name + ":");
       if (newNote !== null) {
         currentOrder[index].note = newNote;
         renderOrder();
@@ -132,7 +123,7 @@
     }
 
     function renderOrder() {
-      const orderList = document.getElementById('order-list');
+      let orderList = document.getElementById('order-list');
       orderList.innerHTML = '';
       let total = 0;
       currentOrder.forEach((item, index) => {
@@ -148,33 +139,31 @@
       document.getElementById('order-total').innerText = total.toFixed(2);
     }
 
-    async function finishOrder() {
-      const total = currentOrder.reduce((sum, item) => sum + item.price, 0);
+    function finishOrder() {
+      let total = currentOrder.reduce((sum, item) => sum + item.price, 0);
       if (total === 0) { alert("No items in order!"); return; }
 
-      const order = {
+      let order = {
         id: Date.now(),
         items: currentOrder,
-        total,
-        status: "Preparing order",
-        time: new Date().toLocaleString()
+        total: total,
+        time: new Date().toLocaleString(),
+        status: "Preparing order"
       };
 
-      try {
-        await push(ref(db, "orders"), order);
-        alert("Order Sent!\nTotal: RM" + total.toFixed(2));
-        currentOrder = [];
-        renderOrder();
-      } catch (e) {
-        console.error(e);
-        alert("⚠️ Failed to send order: " + (e?.message || e));
-      }
-    }
+      salesHistory.push(order);
+      localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
 
-    // 🔓 Expose functions for inline onclick handlers (module scope fix)
-    window.addItem = addItem;
-    window.editItemNote = editItemNote;
-    window.finishOrder = finishOrder;
+      dailyTotal += total;
+      orderCount++;
+      localStorage.setItem("dailyTotal", dailyTotal);
+      localStorage.setItem("orderCount", orderCount);
+
+      alert("Order Sent!\nTotal: RM" + total.toFixed(2));
+      
+      currentOrder = [];
+      renderOrder();
+    }
 
     renderMenu();
   </script>
