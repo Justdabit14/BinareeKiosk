@@ -87,18 +87,29 @@
     }
   }
 
-  function editOrder(orderId) {
-    let newTotal = prompt("Enter new total price (RM):");
-    if (newTotal && !isNaN(newTotal)) {
-      newTotal = parseFloat(newTotal);
-      let order = salesHistory.find(o => o.id === orderId);
-      if (order) {
-        order.total = newTotal;
-        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
-        renderHistory();
-      }
+ function editOrder(orderId) {
+  let newTotal = prompt("Enter new total price (RM):");
+  if (newTotal && !isNaN(newTotal)) {
+    newTotal = parseFloat(newTotal);
+    let order = salesHistory.find(o => o.id === orderId);
+
+    if (order) {
+      // Subtract old total, add new total
+      dailyTotal -= order.total;
+      dailyTotal += newTotal;
+
+      // Update the order
+      order.total = newTotal;
+
+      // Save everything
+      localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+      localStorage.setItem("dailyTotal", dailyTotal);
+
+      renderHistory();
+      updateDailySales(); // ✅ refresh daily total instantly
     }
   }
+}
 
   function editItemNote(orderId, itemIndex) {
     let newNote = prompt("Enter new note:");
@@ -147,5 +158,6 @@
 </script>
 </body>
 </html>
+
 
 
