@@ -43,49 +43,41 @@
     let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
 
     function renderHistory() {
-      let historyDiv = document.getElementById('history');
-      historyDiv.innerHTML = '';
-      if (salesHistory.length === 0) {
-        historyDiv.innerHTML = "<p>No orders yet.</p>";
-        return;
-      }
+  let historyDiv = document.getElementById('history');
+  historyDiv.innerHTML = '';
 
-      salesHistory.forEach(order => {
-        if (!order.status) order.status = "Preparing order";
+  if (salesHistory.length === 0) {
+    historyDiv.innerHTML = "<p>No orders yet.</p>";
+    return;
+  }
 
-        let itemsHTML = order.items.map((item, idx) => `
-          <div>
-            - ${item.name} (RM${item.price.toFixed(2)})
-            <button onclick="editItemNote(${order.id}, ${idx})">📝 Edit Note</button>
-            <span class="item-note">${item.note ? "Note: " + item.note : ""}</span>
-          </div>
-        `).join("");
+  salesHistory.forEach(order => {
+    if (!order.status) order.status = "Preparing order";
 
-        historyDiv.innerHTML += `
-          <div class="history-item" id="order-${order.id}">
-            <b>${order.time}</b><br>
-            ${itemsHTML}
-            <br>
-            <b>Total:</b> RM<span id="total-${order.id}">${order.total.toFixed(2)}</span><br>
-            <b>Status:</b> <span id="status-${order.id}" class="status">${order.status}</span><br>
-            <button onclick="setStatus(${order.id}, 'Preparing order')">⏳ Preparing</button>
-            <button onclick="setStatus(${order.id}, 'Completed✅')">✅ Completed</button>
-            <button onclick="setStatus(${order.id}, 'Paid')">💵 Paid</button>
-            <br>
-            <button onclick="editOrder(${order.id})">✏️ Edit Total</button>
-          </div>
-        `;
-      });
-    }
+    let itemsHTML = order.items.map((item, idx) => `
+      <div>
+        - ${item.name} (RM${item.price.toFixed(2)})
+        <button onclick="editItemNote(${order.id}, ${idx})">📝 Edit Note</button>
+        <span class="item-note">${item.note ? "Note: " + item.note : ""}</span>
+      </div>
+    `).join("");
 
-    function setStatus(orderId, newStatus) {
-      let order = salesHistory.find(o => o.id === orderId);
-      if (order) {
-        order.status = newStatus;
-        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
-        renderHistory();
-      }
-    }
+    historyDiv.innerHTML += `
+      <div class="history-item" id="order-${order.id}">
+        <b>${order.time}</b><br>
+        ${itemsHTML}
+        <br>
+        <b>Total:</b> RM<span id="total-${order.id}">${order.total.toFixed(2)}</span><br>
+        <b>Status:</b> <span id="status-${order.id}" class="status">${order.status}</span><br>
+        <button onclick="setStatus(${order.id}, 'Preparing order')">⏳ Preparing</button>
+        <button onclick="setStatus(${order.id}, 'Completed✅')">✅ Completed</button>
+        <button onclick="setStatus(${order.id}, 'Paid')">💵 Paid</button>
+        <br>
+        <button onclick="editOrder(${order.id})">✏️ Edit Total</button>
+      </div>
+    `;
+  });
+}
 
     function editOrder(orderId) {
       let newTotal = prompt("Enter new total price (RM):");
@@ -138,3 +130,4 @@
   </script>
 </body>
 </html>
+
