@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ffcc00">
-  <script>
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("service-worker.js")
-        .then(() => console.log("Service Worker Registered"))
-        .catch(err => console.log("SW error:", err));
-    }
-  </script>
+ <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffcc00">
+<script>
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("Service Worker Registered"))
+      .catch(err => console.log("SW error:", err));
+  }
+</script>
 
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Order List</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body { font-family: Arial, sans-serif; margin: 15px; }
     h2 { text-align: center; }
@@ -29,126 +29,112 @@
 
   <div><b>Daily Total:</b> RM <span id="daily-total">0</span></div>
   <div><b>Orders Today:</b> <span id="order-count">0</span></div>
+  <button onclick="clearDailySales()">🧹 Clear Daily Sales</button>
   <div class="divider"></div>
 
   <div id="history"></div>
 
   <button onclick="window.location.href='index.html'">⬅️ Back to Order</button>
+  <button style="background:red; color:white;" onclick="clearHistory()">🗑️ Clear All Orders</button>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-    import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-database.js";
+  <script>
+    let salesHistory = JSON.parse(localStorage.getItem('salesHistory')) || [];
+    let dailyTotal = parseFloat(localStorage.getItem("dailyTotal")) || 0;
+    let orderCount = parseInt(localStorage.getItem("orderCount")) || 0;
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBegMe89Rh5D7PdZm87qeQam9xm_ofpBLY",
-      authDomain: "binareekiosk.firebaseapp.com",
-      databaseURL: "https://binareekiosk-default-rtdb.firebaseio.com",
-      projectId: "binareekiosk",
-      storageBucket: "binareekiosk.appspot.com",
-      messagingSenderId: "186543278188",
-      appId: "1:186543278188:web:7a7e553e04481439c83049",
-      measurementId: "G-8QDL5YLLHC"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    let dailyTotal = 0;
-    let orderCount = 0;
-
-    function renderHistory(orders) {
-      const historyDiv = document.getElementById('history');
+    function renderHistory() {
+      let historyDiv = document.getElementById('history');
       historyDiv.innerHTML = '';
-      dailyTotal = 0;
-      orderCount = 0;
-
-      if (!orders) {
+      if (salesHistory.length === 0) {
         historyDiv.innerHTML = "<p>No orders yet.</p>";
-        document.getElementById('daily-total').innerText = "0.00";
-        document.getElementById('order-count').innerText = "0";
         return;
       }
 
-      Object.entries(orders).forEach(([key, order]) => {
-        const totalNum = Number(order.total) || 0;
-        dailyTotal += totalNum;
-        orderCount++;
+      salesHistory.forEach(order => {
+        if (!order.status) order.status = "Preparing order";
 
-        const items = Array.isArray(order.items) ? order.items : [];
-        const status = order.status || "Preparing order";
-        const time = order.time || "";
-
-        const itemsHTML = items.map((item, idx) => `
+        let itemsHTML = order.items.map((item, idx) => `
           <div>
-            - ${item.name} (RM${Number(item.price).toFixed(2)})
-            <button onclick="editItemNote('${key}', ${idx})">📝 Edit Note</button>
+            - ${item.name} (RM${item.price.toFixed(2)})
+            <button onclick="editItemNote(${order.id}, ${idx})">📝 Edit Note</button>
             <span class="item-note">${item.note ? "Note: " + item.note : ""}</span>
           </div>
         `).join("");
 
         historyDiv.innerHTML += `
-          <div class="history-item" id="order-${key}">
-            <b>${time}</b><br>
+          <div class="history-item" id="order-${order.id}">
+            <b>${order.time}</b><br>
             ${itemsHTML}
             <br>
-            <b>Total:</b> RM<span id="total-${key}">${totalNum.toFixed(2)}</span><br>
-            <b>Status:</b> <span id="status-${key}" class="status">${status}</span><br>
-            <button onclick="setStatus('${key}', 'Preparing order')">⏳ Preparing</button>
-            <button onclick="setStatus('${key}', 'Completed✅')">✅ Completed</button>
-            <button onclick="setStatus('${key}', 'Paid')">💵 Pending Payment</button>
+            <b>Total:</b> RM<span id="total-${order.id}">${order.total.toFixed(2)}</span><br>
+            <b>Status:</b> <span id="status-${order.id}" class="status">${order.status}</span><br>
+            <button onclick="setStatus(${order.id}, 'Preparing order')">⏳ Preparing</button>
+            <button onclick="setStatus(${order.id}, 'Completed✅')">✅ Completed</button>
+            <button onclick="setStatus(${order.id}, 'Paid')">💵 Paid</button>
             <br>
-            <button onclick="editOrder('${key}')">✏️ Edit Total</button>
+            <button onclick="editOrder(${order.id})">✏️ Edit Total</button>
           </div>
         `;
       });
-
-      document.getElementById('daily-total').innerText = dailyTotal.toFixed(2);
-      document.getElementById('order-count').innerText = String(orderCount);
     }
 
-    async function setStatus(orderId, newStatus) {
-      try {
-        await update(ref(db, "orders/" + orderId), { status: newStatus });
-      } catch (e) {
-        console.error(e);
-        alert("⚠️ Failed to update status: " + (e?.message || e));
+    function setStatus(orderId, newStatus) {
+      let order = salesHistory.find(o => o.id === orderId);
+      if (order) {
+        order.status = newStatus;
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        renderHistory();
       }
     }
 
-    async function editOrder(orderId) {
+    function editOrder(orderId) {
       let newTotal = prompt("Enter new total price (RM):");
-      if (newTotal === null) return;
-      newTotal = Number(newTotal);
-      if (Number.isNaN(newTotal)) { alert("Please enter a number"); return; }
-      try {
-        await update(ref(db, "orders/" + orderId), { total: newTotal });
-      } catch (e) {
-        console.error(e);
-        alert("⚠️ Failed to update total: " + (e?.message || e));
+      if (newTotal && !isNaN(newTotal)) {
+        newTotal = parseFloat(newTotal);
+        let order = salesHistory.find(o => o.id === orderId);
+        if (order) {
+          order.total = newTotal;
+          localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+          renderHistory();
+        }
       }
     }
 
-    async function editItemNote(orderId, itemIndex) {
-      const newNote = prompt("Enter new note:");
-      if (newNote === null) return;
-      try {
-        await update(ref(db, `orders/${orderId}/items/${itemIndex}`), { note: newNote });
-      } catch (e) {
-        console.error(e);
-        alert("⚠️ Failed to update note: " + (e?.message || e));
+    function editItemNote(orderId, itemIndex) {
+      let newNote = prompt("Enter new note:");
+      let order = salesHistory.find(o => o.id === orderId);
+      if (order && order.items[itemIndex]) {
+        order.items[itemIndex].note = newNote;
+        localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+        renderHistory();
       }
     }
 
-    // 🔓 Expose for inline onclick (module scope fix)
-    window.setStatus = setStatus;
-    window.editOrder = editOrder;
-    window.editItemNote = editItemNote;
+    function clearHistory() {
+      if (confirm("⚠️ Are you sure you want to delete ALL orders? This cannot be undone.")) {
+        salesHistory = [];
+        localStorage.removeItem('salesHistory');
+        renderHistory();
+      }
+    }
 
-    // Realtime listener
-    onValue(ref(db, "orders"), (snapshot) => {
-      renderHistory(snapshot.val());
-    });
+    function clearDailySales() {
+      if (confirm("Clear today's sales total? This will NOT delete order list.")) {
+        dailyTotal = 0;
+        orderCount = 0;
+        localStorage.setItem("dailyTotal", dailyTotal);
+        localStorage.setItem("orderCount", orderCount);
+        updateDailySales();
+      }
+    }
+
+    function updateDailySales() {
+      document.getElementById('daily-total').innerText = dailyTotal.toFixed(2);
+      document.getElementById('order-count').innerText = orderCount;
+    }
+
+    renderHistory();
+    updateDailySales();
   </script>
 </body>
 </html>
-
