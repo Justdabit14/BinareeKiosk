@@ -121,23 +121,38 @@
     }
   }
 
-  function clearHistory() {
-    if (confirm("⚠️ Delete ALL orders? This cannot be undone.")) {
-      salesHistory = [];
-      localStorage.removeItem('salesHistory');
-      renderHistory();
-    }
+  // Password (you can change this anytime)
+const adminPassword = "123";
+
+function clearHistory() {
+  let pass = prompt("Enter password to delete ALL orders:");
+  if (pass !== adminPassword) {
+    alert("❌ Wrong password. Action cancelled.");
+    return;
   }
 
-  function clearDailySales() {
-    if (confirm("Clear today's sales total? This will NOT delete order list.")) {
-      dailyTotal = 0;
-      orderCount = 0;
-      localStorage.setItem("dailyTotal", dailyTotal);
-      localStorage.setItem("orderCount", orderCount);
-      updateDailySales();
-    }
+  if (confirm("⚠️ Delete ALL orders? This cannot be undone.")) {
+    salesHistory = [];
+    localStorage.removeItem('salesHistory');
+    renderHistory();
   }
+}
+
+function clearDailySales() {
+  let pass = prompt("Enter password to clear daily sales:");
+  if (pass !== adminPassword) {
+    alert("❌ Wrong password. Action cancelled.");
+    return;
+  }
+
+  if (confirm("Clear today's sales total? This will NOT delete order list.")) {
+    dailyTotal = 0;
+    orderCount = 0;
+    localStorage.setItem("dailyTotal", dailyTotal);
+    localStorage.setItem("orderCount", orderCount);
+    updateDailySales();
+  }
+}
 
   function updateDailySales() {
     document.getElementById('daily-total').innerText = dailyTotal.toFixed(2);
@@ -158,6 +173,7 @@
 </script>
 </body>
 </html>
+
 
 
 
