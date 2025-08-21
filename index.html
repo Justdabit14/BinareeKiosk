@@ -140,33 +140,40 @@
     }
 
     function finishOrder() {
-      let total = currentOrder.reduce((sum, item) => sum + item.price, 0);
-      if (total === 0) { alert("No items in order!"); return; }
+  let total = currentOrder.reduce((sum, item) => sum + item.price, 0);
+  if (total === 0) { 
+    alert("No items in order!"); 
+    return; 
+  }
 
-      let order = {
-        id: Date.now(),
-        items: currentOrder,
-        total: total,
-        time: new Date().toLocaleString(),
-        status: "Preparing order"
-      };
+  let order = {
+    id: Date.now(),
+    items: currentOrder,
+    total: total,
+    time: new Date().toLocaleString(),
+    status: "Preparing order"
+  };
 
-      salesHistory.push(order);
-      localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
+  // ✅ Save to history
+  salesHistory.push(order);
+  localStorage.setItem('salesHistory', JSON.stringify(salesHistory));
 
-      dailyTotal += total;
-      orderCount++;
-      localStorage.setItem("dailyTotal", dailyTotal);
-      localStorage.setItem("orderCount", orderCount);
+  // ✅ Update daily counters
+  dailyTotal += total;
+  orderCount++;
+  localStorage.setItem("dailyTotal", dailyTotal);
+  localStorage.setItem("orderCount", orderCount);
 
-      alert("Order Sent!\nTotal: RM" + total.toFixed(2));
-      
-      currentOrder = [];
-      renderOrder();
-    }
+  alert("Order Sent!\nTotal: RM" + total.toFixed(2));
+
+  currentOrder = [];
+  renderOrder();
+}
+
 
     renderMenu();
   </script>
 </body>
 </html>
+
 
